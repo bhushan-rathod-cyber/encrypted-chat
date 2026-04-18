@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Encrypted–Decrypted Message Sender</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2>🔐 Encrypted–Decrypted Message Sender</h2>
+    <p class="status" id="status">Waiting for connection...</p>
+
+    <!-- Join -->
+    <div id="join-section">
+        <input id="username" placeholder="Enter your name">
+        <input id="key" placeholder="Enter shared secret key">
+        <button onclick="joinChat()">Join Chat</button>
+    </div>
+
+    <!-- Chat -->
+    <div id="chat-section" style="display:none; flex:1; flex-direction: column;">
+        <ul id="chat"></ul>
+
+        <div class="chat-input">
+            <input id="message" placeholder="Type a message...">
+            <button onclick="send()">Send</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+let joined = false;
+
+function joinChat() {
+    let name = document.getElementById("username").value;
+    let key = document.getElementById("key").value;
+
+    if (!name || !key) {
+        alert("Enter name and key");
+        return;
+    }
+
+    document.getElementById("join-section").style.display = "none";
+    document.getElementById("chat-section").style.display = "flex";
+    document.getElementById("status").innerText = "Connected as " + name;
+
+    joined = true;
+}
+
+async function send() {
+    let msg = document.getElementById("message").value;
+    let key = document.getElementById("key").value;
+
+    if (!msg) return;
+
+    await fetch("/send", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({message: msg, key: key})
+    });
+
+    document.getElementById("message").value = "";
+    load();
+}
+
+async function load() {
+    if (!joined) return;
+
+    let key = document.getElementById("key").value;
+
+    let res = await fetch("/receive", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({key: key})
+    });
+
+    let data = await res.json();
+    let chat = document.getElementById("chat");
+
+    chat.innerHTML = "";
+
+    data.messages.forEach(m => {
+        let li = document.createElement("li");
+        li.innerText = m;
+        chat.appendChild(li);
+    });
+
+    chat.scrollTop = chat.scrollHeight;
+}
+
+setInterval(load, 2000);
+
+</script>
+
+</body>
+</html>
